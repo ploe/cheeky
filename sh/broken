@@ -1,0 +1,4 @@
+#! /bin/sh
+
+echo "bugger"
+exit 1
