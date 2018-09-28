@@ -1,3 +1,9 @@
+## What is this?
+
+A dumb piece of middleware that sits between `Slack Slash Commands` and a directory full of shell scripts.
+
+It's has no dependencies outside of the what `go` has out of the box and should be readily deployable to different setups.
+
 ## Usage:
 
 ```
