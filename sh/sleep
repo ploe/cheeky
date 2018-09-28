@@ -1,0 +1,8 @@
+#! /bin/sh
+
+DURATION=60
+
+echo "Sleeping $DURATION seconds..."
+sleep $DURATION
+
+echo "Done!"
