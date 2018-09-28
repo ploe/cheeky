@@ -20,9 +20,9 @@ var (
 	token *string
 )
 
-type Response struct {
+type SlackResponse struct {
 	Type string `json:"response_type"`
-	Text string `json: "text"`
+	Text string `json:"text"`
 }
 
 func validRequest(w http.ResponseWriter, r *http.Request) (string, int) {
@@ -58,21 +58,24 @@ func execCommand(user, script, url string) {
 	output, err := cmd.CombinedOutput()
 
 	/* if the command failed we should include the status of the script */
-	resp := Response{Type:"in-channel"}
+	slack := SlackResponse{Type:"in-channel"}
 	if err != nil {
-		resp.Text = fmt.Sprintf("%s%v", output, err)
+		slack.Text = fmt.Sprintf("%s%v", output, err)
 	} else {
-		resp.Text = string(output)
+		slack.Text = string(output)
 	}
 
-	log.Printf("%d:%s \"%s\"",
-		http.StatusOK,
+	reply, _ := json.Marshal(slack)
+
+	http.Post(url, "application/json", bytes.NewReader(reply))
+
+	log.Printf("%s %s %s %s",
 		script,
 		user,
+		url,
+		reply
 	)
 
-	reply, _ := json.Marshal(resp)
-	http.Post(url, "application/json", bytes.NewReader(reply))
 }
 
 func rootRoute(w http.ResponseWriter, r *http.Request) {
