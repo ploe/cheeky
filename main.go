@@ -73,7 +73,7 @@ func execCommand(user, script, url string) {
 		script,
 		user,
 		url,
-		reply
+		reply,
 	)
 
 }
