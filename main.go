@@ -1,7 +1,8 @@
 package main
 
 import (
-	//"encoding/json"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"flag"
 	"log"
@@ -20,8 +21,8 @@ var (
 )
 
 type Response struct {
-	Type string
-	Text string
+	Type string `json:"response_type"`
+	Text string `json: "text"`
 }
 
 func validRequest(w http.ResponseWriter, r *http.Request) (string, int) {
@@ -41,13 +42,37 @@ func validRequest(w http.ResponseWriter, r *http.Request) (string, int) {
 		return text, http.StatusNotFound
 	}
 
-	if strings.Contains(script, "/") {
-		text := fmt.Sprintf("'%s' contains slashes, and it's not allowed", script)
+	if strings.ContainsAny(script, "/;&") {
+		text := fmt.Sprintf("'%s' cannot contain characters: / ; &", script)
 		return text, http.StatusNotFound
 	}
 
 
 	return "", http.StatusOK
+}
+
+func execCommand(user, script, url string) {
+	fullpath := fmt.Sprintf("%s/%s", *path, script)
+
+	cmd := exec.Command(fullpath)
+	output, err := cmd.CombinedOutput()
+
+	/* if the command failed we should include the status of the script */
+	resp := Response{Type:"in-channel"}
+	if err != nil {
+		resp.Text = fmt.Sprintf("%s%v", output, err)
+	} else {
+		resp.Text = string(output)
+	}
+
+	log.Printf("%d:%s \"%s\"",
+		http.StatusOK,
+		script,
+		user,
+	)
+
+	reply, _ := json.Marshal(resp)
+	http.Post(url, "application/json", bytes.NewReader(reply))
 }
 
 func rootRoute(w http.ResponseWriter, r *http.Request) {
@@ -67,27 +92,9 @@ func rootRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fullpath := fmt.Sprintf("%s/%s", *path, script)
-	//resp := Response{Type: "in-channel"}
+	go execCommand(user, script, r.FormValue("response_url"))
 
-	cmd := exec.Command(fullpath)
-	output, err := cmd.CombinedOutput()
-
-	/* if the command failed we should include the status of the script */
-	if err != nil {
-		text = fmt.Sprintf("%s%v", output, err)
-	} else {
-		text = string(output)
-	}
-
-	http.Error(w, text, status)
-
-	log.Printf("%d:%s:%s \"%s\"",
-		status,
-		script,
-		user,
-		output,
-	)
+	fmt.Fprintf(w, "Hey %s, I'm running '%s' - gimme a mo...", user, script)
 }
 
 func main() {
