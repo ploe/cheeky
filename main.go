@@ -9,7 +9,7 @@ import (
 	"log/syslog"
 	"net/http"
 	"os/exec"
-	"strings"
+	"regexp"
 )
 
 var (
@@ -41,8 +41,9 @@ func validRequest(w http.ResponseWriter, r *http.Request) (string, int) {
 		return text, http.StatusNotFound
 	}
 
-	if strings.ContainsAny(script, "/;&") {
-		text := fmt.Sprintf("'%s' cannot contain characters: / ; &", script)
+	re := regexp.MustCompile("^[a-zA-Z0-9_-]+$")
+	if !re.MatchString(script) {
+		text := fmt.Sprintf("'%s' can only contain alphanumeric characters, hyphen and underscore.", script)
 		return text, http.StatusNotFound
 	}
 
@@ -57,7 +58,7 @@ func execCommand(user, script, url string) {
 	output, err := cmd.CombinedOutput()
 
 	/* if the command failed we should include the status of the script */
-	slack := SlackResponse{Type:"in-channel"}
+	slack := SlackResponse{Type:"in_channel"}
 	if err != nil {
 		slack.Text = fmt.Sprintf("%s%v", output, err)
 	} else {
@@ -96,7 +97,14 @@ func rootRoute(w http.ResponseWriter, r *http.Request) {
 
 	go execCommand(user, script, r.FormValue("response_url"))
 
-	fmt.Fprintf(w, "Hey %s, I'm running '%s' - gimme a mo...", user, script)
+
+	slack := SlackResponse{Type: "in_channel"}
+
+	slack.Text = fmt.Sprintf("Hey %s, I'm running '%s' - gimme a mo...", user, script)
+	reply, _ := json.Marshal(slack)
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, string(reply))
 }
 
 func main() {
