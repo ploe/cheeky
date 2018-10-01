@@ -28,14 +28,13 @@ type SlackResponse struct {
 func validRequest(w http.ResponseWriter, r *http.Request) (string, int) {
 	script := r.FormValue("text")
 
-	if r.Method != "POST" {
-		return http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed
-	}
-
 	if r.FormValue("token") != *token {
 		return http.StatusText(http.StatusForbidden), http.StatusForbidden
 	}
 
+	if r.Method != "POST" {
+		return http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed
+	}
 
 	if script == "" {
 		text := fmt.Sprintf("no script specified")
